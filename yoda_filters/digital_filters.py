@@ -1,49 +1,109 @@
 import numpy as np
 
-# def _zp2tf(z, p, rp, btype):
-#     z = np.array(z)
-#     p = np.array(p)
-#     rp = np.array(rp)
-    
-#     num, den = zp2tf_custom(z, p, rp)
-    
-#     if btype == 'lowpass':
-#         return num, den
-#     elif btype == 'highpass':
-#         num, den = highpass_transform(num, den)
-#         return num, den
-#     else:
-#         raise ValueError("Invalid filter type. Supported types are 'lowpass' and 'highpass'.")
-    
-    
-def _zp2tf(z, p):
+
+def _zp2tf(z, p, rp=None, btype='lowpass'):
     """
     Calculate transfer function coefficients from zeros and poles.
 
     Args:
         z (np.ndarray): Array of zeros.
         p (np.ndarray): Array of poles.
+        rp (np.ndarray): Array of zeros/resonance frequencies for bandpass/bandstop filters.
+        btype (str): Type of the filter. Default is 'lowpass'.
 
     Returns:
         tuple[np.ndarray, np.ndarray]: Numerator and denominator coefficients.
 
+    Raises:
+        ValueError: If the filter type is not supported.
+
     """
+    z = np.array(z)
+    p = np.array(p)
+
+    if rp is not None:
+        rp = np.array(rp)
+
     num = np.poly(z)
     den = np.poly(p)
-    return num, den
+
+    if btype == 'lowpass':
+        return num, den
+    elif btype == 'highpass':
+        num, den = highpass_transform(num, den)
+        return num, den
+    else:
+        raise ValueError(
+            "Invalid filter type. Supported types are 'lowpass' and 'highpass'.")
 
 
-def zp2tf_custom(z, p, rp):
+import numpy as np
+
+
+def zp2tf_custom(z: np.ndarray, p: np.ndarray, rp: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Convert zeros and poles to transfer function coefficients with a custom scaling factor.
+
+    Args:
+        z (np.ndarray): Array of zeros.
+        p (np.ndarray): Array of poles.
+        rp (np.ndarray): Array of zeros/resonance frequencies for bandpass/bandstop filters.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Numerator and denominator coefficients.
+
+    Raises:
+        ValueError: If the lengths of `z`, `p`, and `rp` arrays are not the same.
+
+    Example:
+        z = np.array([1, 2, 3])
+        p = np.array([4, 5, 6])
+        rp = np.array([0.5, 1.0, 1.5])
+        num, den = zp2tf_custom(z, p, rp)
+        print(num, den)
+    """
+
+    # Check input array lengths
+    if len(z) != len(p) or len(z) != len(rp):
+        raise ValueError("Lengths of `z`, `p`, and `rp` arrays must be the same.")
+
+    # Convert zeros and poles to transfer function coefficients
     num = np.poly(z)
     den = np.poly(p)
+
+    # Scale numerator and denominator with the custom factor
     num *= rp[0]
     den *= rp[0]
+
     return num, den
 
-def highpass_transform(num, den):
+
+
+def highpass_transform(num: np.ndarray, den: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Apply highpass transformation to transfer function coefficients.
+
+    Args:
+        num (np.ndarray): Numerator coefficients.
+        den (np.ndarray): Denominator coefficients.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Transformed numerator and denominator coefficients.
+
+    Example:
+        num = np.array([1, 2, 3])
+        den = np.array([4, 5, 6])
+        transformed_num, transformed_den = highpass_transform(num, den)
+        print(transformed_num, transformed_den)
+    """
+
+    # Calculate the order of the filter
     order = len(den) - 1
+
+    # Apply the highpass transformation
     sign = (-1) ** order
     num *= sign
+
     return num, den
 
 
@@ -64,34 +124,36 @@ def _bilinear_transform(p: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarra
     p = np.exp(2j * np.pi * fs / 2 * np.imag(p))
     return z, p
 
+
 def _apply_filter(data, b, a):
     filtered_data = np.zeros_like(data)
     N = len(data)
     M = len(b)
     L = len(a)
-    
+
     for n in range(N):
         for m in range(min(n+1, M)):
             filtered_data[n] += b[m] * data[n - m]
-        
+
         for l in range(1, min(n+1, L)):
             filtered_data[n] -= a[l] * filtered_data[n - l]
-    
+
     return filtered_data
+
 
 def _butter_bandpass_coeffs(cutoff_norm, order):
     b = np.zeros(order + 1)
     a = np.zeros(order + 1)
-    
+
     mid = order // 2
-    
+
     for k in range(mid + 1):
         b[k] = comb(mid, k) * (cutoff_norm ** (mid - k)) * (-1) ** k
         a[k] = comb(mid, k) * (cutoff_norm ** (mid - k))
-    
+
     b[mid + 1:] = b[mid::-1]
     a[mid + 1:] = a[mid::-1]
-    
+
     return b, a
 
 
@@ -103,7 +165,6 @@ def _butter_bandstop_coeffs(cutoff_norm, order):
 
 def comb(n, k):
     return np.math.factorial(n) // (np.math.factorial(k) * np.math.factorial(n - k))
-
 
 
 def kalman_filter(
@@ -334,8 +395,6 @@ def fir_filter(data: np.ndarray, kernel: np.ndarray) -> np.ndarray:
 
     return filtered_data
 
-import numpy as np
-
 
 def butterworth_filter(
     data: np.ndarray,
@@ -376,7 +435,8 @@ def butterworth_filter(
     """
     # Check filter type
     if btype not in ['lowpass', 'highpass', 'bandpass', 'bandstop']:
-        raise ValueError("Unsupported filter type. Supported types are 'lowpass', 'highpass', 'bandpass', 'bandstop'.")
+        raise ValueError(
+            "Unsupported filter type. Supported types are 'lowpass', 'highpass', 'bandpass', 'bandstop'.")
 
     # Normalize frequencies
     nyquist_freq = 0.5 * sampling_freq
@@ -417,16 +477,17 @@ def _compute_filter_coefficients(cutoff_norm: float, order: int, btype: str) -> 
 
     return b, a
 
+
 def _butter_coeffs(cutoff_norm, order):
     b = np.zeros(order + 1)
     a = np.zeros(order + 1)
-    
+
     b[0] = 1.0
-    
+
     for k in range(1, order + 1):
         b[k] = b[k - 1] * (order - k + 1) * cutoff_norm / k
         a[k] = a[k - 1] + (2 * k - 1) * cutoff_norm
-    
+
     return b, a
 
 
@@ -463,4 +524,3 @@ def _butter_highpass_coeffs(cutoff_norm: float, order: int) -> tuple[np.ndarray,
     z, p = _bilinear_transform(p, cutoff_norm)
     b, a = _zp2tf(z, p)
     return b, a
-
