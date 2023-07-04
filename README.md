@@ -10,7 +10,7 @@ To use the signal processing filters package, follow these steps:
 
 1. Clone the Git repository to your local machine:
 
-git clone git@github.com:DiogoRibeiro7/yoda_filters.git
+'git clone git@github.com:DiogoRibeiro7/yoda_filters.git'
 
 2. Navigate to the project directory:
 
