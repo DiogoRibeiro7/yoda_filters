@@ -1,5 +1,52 @@
 import numpy as np
 
+# def _zp2tf(z, p, rp, btype):
+#     z = np.array(z)
+#     p = np.array(p)
+#     rp = np.array(rp)
+    
+#     num, den = zp2tf_custom(z, p, rp)
+    
+#     if btype == 'lowpass':
+#         return num, den
+#     elif btype == 'highpass':
+#         num, den = highpass_transform(num, den)
+#         return num, den
+#     else:
+#         raise ValueError("Invalid filter type. Supported types are 'lowpass' and 'highpass'.")
+    
+    
+def _zp2tf(z, p):
+    """
+    Calculate transfer function coefficients from zeros and poles.
+
+    Args:
+        z (np.ndarray): Array of zeros.
+        p (np.ndarray): Array of poles.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Numerator and denominator coefficients.
+
+    """
+    num = np.poly(z)
+    den = np.poly(p)
+    return num, den
+
+
+def zp2tf_custom(z, p, rp):
+    num = np.poly(z)
+    den = np.poly(p)
+    num *= rp[0]
+    den *= rp[0]
+    return num, den
+
+def highpass_transform(num, den):
+    order = len(den) - 1
+    sign = (-1) ** order
+    num *= sign
+    return num, den
+
+
 
 def _bilinear_transform(p: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -16,6 +63,47 @@ def _bilinear_transform(p: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarra
     z = (1 + p) / (1 - p)
     p = np.exp(2j * np.pi * fs / 2 * np.imag(p))
     return z, p
+
+def _apply_filter(data, b, a):
+    filtered_data = np.zeros_like(data)
+    N = len(data)
+    M = len(b)
+    L = len(a)
+    
+    for n in range(N):
+        for m in range(min(n+1, M)):
+            filtered_data[n] += b[m] * data[n - m]
+        
+        for l in range(1, min(n+1, L)):
+            filtered_data[n] -= a[l] * filtered_data[n - l]
+    
+    return filtered_data
+
+def _butter_bandpass_coeffs(cutoff_norm, order):
+    b = np.zeros(order + 1)
+    a = np.zeros(order + 1)
+    
+    mid = order // 2
+    
+    for k in range(mid + 1):
+        b[k] = comb(mid, k) * (cutoff_norm ** (mid - k)) * (-1) ** k
+        a[k] = comb(mid, k) * (cutoff_norm ** (mid - k))
+    
+    b[mid + 1:] = b[mid::-1]
+    a[mid + 1:] = a[mid::-1]
+    
+    return b, a
+
+
+def _butter_bandstop_coeffs(cutoff_norm, order):
+    b, a = _butter_bandpass_coeffs(cutoff_norm, order)
+    b *= (-1) ** order
+    return b, a
+
+
+def comb(n, k):
+    return np.math.factorial(n) // (np.math.factorial(k) * np.math.factorial(n - k))
+
 
 
 def kalman_filter(
@@ -203,4 +291,176 @@ def chebyshev_filter(
 
     return filtered_data
 
+
+def fir_filter(data: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+    """
+    FIR filter implementation.
+
+    Args:
+        data (np.ndarray): Input data to be filtered.
+        kernel (np.ndarray): Filter kernel coefficients.
+
+    Returns:
+        np.ndarray: Filtered data.
+
+    Raises:
+        ValueError: If the kernel size is not odd or the kernel is not 1D.
+
+    Example:
+        # Generate example data
+        data = np.sin(np.arange(0, 2 * np.pi, 0.1))
+
+        # Define filter kernel
+        kernel = np.array([0.1, 0.2, 0.3, 0.2, 0.1])
+
+        # Apply FIR filter
+        filtered_data = fir_filter(data, kernel)
+
+        print(filtered_data)
+
+    """
+    # Check kernel size and dimension
+    if len(kernel) % 2 != 1:
+        raise ValueError("Kernel size must be odd.")
+    if kernel.ndim != 1:
+        raise ValueError("Kernel must be 1-dimensional.")
+
+    # Pad data at both ends to handle edge effects
+    pad_len = len(kernel) // 2
+    padded_data = np.pad(data, pad_len, mode='edge')
+
+    # Apply filter using convolution
+    filtered_data = np.convolve(padded_data, kernel, mode='valid')
+
+    return filtered_data
+
+import numpy as np
+
+
+def butterworth_filter(
+    data: np.ndarray,
+    cutoff_freq: float,
+    sampling_freq: float,
+    order: int,
+    btype: str = 'lowpass',
+) -> np.ndarray:
+    """
+    Butterworth filter implementation.
+
+    Args:
+        data (np.ndarray): Input data to be filtered.
+        cutoff_freq (float): Cutoff frequency of the filter.
+        sampling_freq (float): Sampling frequency of the data.
+        order (int): Order of the filter.
+        btype (str): Type of the filter. Default is 'lowpass'.
+
+    Returns:
+        np.ndarray: Filtered data.
+
+    Raises:
+        ValueError: If the filter type is not supported.
+
+    Example:
+        # Generate example data
+        t = np.linspace(0, 1, num=1000)
+        data = np.sin(2 * np.pi * 5 * t) + np.sin(2 * np.pi * 10 * t)
+
+        # Apply Butterworth filter
+        cutoff_freq = 8
+        sampling_freq = 100
+        order = 4
+        filtered_data = butterworth_filter(data, cutoff_freq, sampling_freq, order)
+
+        print(filtered_data)
+
+    """
+    # Check filter type
+    if btype not in ['lowpass', 'highpass', 'bandpass', 'bandstop']:
+        raise ValueError("Unsupported filter type. Supported types are 'lowpass', 'highpass', 'bandpass', 'bandstop'.")
+
+    # Normalize frequencies
+    nyquist_freq = 0.5 * sampling_freq
+    cutoff_norm = cutoff_freq / nyquist_freq
+
+    # Compute filter coefficients
+    b, a = _compute_filter_coefficients(cutoff_norm, order, btype)
+
+    # Apply filter using difference equation
+    filtered_data = _apply_filter(data, b, a)
+
+    return filtered_data
+
+
+def _compute_filter_coefficients(cutoff_norm: float, order: int, btype: str) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute Butterworth filter coefficients.
+
+    Args:
+        cutoff_norm (float): Normalized cutoff frequency.
+        order (int): Order of the filter.
+        btype (str): Type of the filter.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Numerator and denominator coefficients.
+
+    """
+    if btype == 'lowpass':
+        b, a = _butter_lowpass_coeffs(cutoff_norm, order)
+    elif btype == 'highpass':
+        b, a = _butter_highpass_coeffs(cutoff_norm, order)
+    elif btype == 'bandpass':
+        b, a = _butter_bandpass_coeffs(cutoff_norm, order)
+    elif btype == 'bandstop':
+        b, a = _butter_bandstop_coeffs(cutoff_norm, order)
+    else:
+        raise ValueError("Unsupported filter type.")
+
+    return b, a
+
+def _butter_coeffs(cutoff_norm, order):
+    b = np.zeros(order + 1)
+    a = np.zeros(order + 1)
+    
+    b[0] = 1.0
+    
+    for k in range(1, order + 1):
+        b[k] = b[k - 1] * (order - k + 1) * cutoff_norm / k
+        a[k] = a[k - 1] + (2 * k - 1) * cutoff_norm
+    
+    return b, a
+
+
+def _butter_lowpass_coeffs(cutoff_norm: float, order: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute Butterworth lowpass filter coefficients.
+
+    Args:
+        cutoff_norm (float): Normalized cutoff frequency.
+        order (int): Order of the filter.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Numerator and denominator coefficients.
+
+    """
+    b, a = _butter_coeffs(cutoff_norm, order)
+    return b, a
+
+
+def _butter_highpass_coeffs(cutoff_norm: float, order: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute Butterworth highpass filter coefficients.
+
+    Args:
+        cutoff_norm (float): Normalized cutoff frequency.
+        order (int): Order of the filter.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Numerator and denominator coefficients.
+
+    """
+    p = np.exp(1j * np.pi * np.arange(2 * order) / 2)
+    p = 1.0 / p
+    z, p = _bilinear_transform(p, cutoff_norm)
+    b, a = _zp2tf(z, p)
+    return b, a
 
