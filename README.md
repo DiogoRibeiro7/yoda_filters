@@ -9,19 +9,16 @@ This documentation provides an overview and usage examples for various signal pr
 To use the signal processing filters package, follow these steps:
 
 1. Clone the Git repository to your local machine:
-
 <pre><code>
 git clone git@github.com:DiogoRibeiro7/yoda_filters.git
 </code></pre>
 
 2. Navigate to the project directory:
-
 <pre><code>
 cd yoda_filters
 </code></pre>
 
 3. Install the required dependencies using Poetry:
-
 <pre><code>
 poetry install
 </code></pre>
@@ -29,7 +26,6 @@ poetry install
 This will create a virtual environment and install all the necessary dependencies specified in the `pyproject.toml` file.
 
 4. Activate the virtual environment:
-
 <pre><code>
 poetry shell
 </code></pre>
