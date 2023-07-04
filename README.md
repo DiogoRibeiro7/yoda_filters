@@ -14,6 +14,11 @@ To use the signal processing filters package, follow these steps:
 git clone git@github.com:DiogoRibeiro7/yoda_filters.git
 '''
 
+<pre><code>```
+git clone git@github.com:DiogoRibeiro7/yoda_filters.git
+```
+</code></pre>
+
 2. Navigate to the project directory:
 
 cd yoda_filters
