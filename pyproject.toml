@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "yoda-filters"
+version = "0.1.0"
+description = "A python library that contains signal processing filters"
+authors = ["DiogoRibeiro7 <diogo_dj@hotmail.com>"]
+readme = "README.md"
+packages = [{include = "yoda_filters"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+python-dateutil = "^2.8.2"
+numpy = "^1.23.3"
+scipy = "^1.9.2"
+pandas = "^1.5.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "setuptools>=40.8.0"]
+build-backend = "poetry.core.masonry.api"
