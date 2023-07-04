@@ -524,3 +524,49 @@ def _butter_highpass_coeffs(cutoff_norm: float, order: int) -> tuple[np.ndarray,
     z, p = _bilinear_transform(p, cutoff_norm)
     b, a = _zp2tf(z, p)
     return b, a
+
+
+def moving_average_filter(data, window_size):
+    """
+    Applies a moving average filter to a list of data.
+
+    Args:
+        data (list): List of numerical data to be filtered.
+        window_size (int): The size of the moving average window.
+
+    Returns:
+        list: List of filtered data.
+
+    Raises:
+        ValueError: If input types are not as expected.
+        ValueError: If window size is greater than the length of the data.
+
+    Example:
+        >>> data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        >>> window_size = 3
+        >>> filtered_data = moving_average_filter(data, window_size)
+        >>> print(filtered_data)
+        [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+    """
+
+    # Check types
+    if not isinstance(data, list):
+        raise ValueError('Data must be a list.')
+    if not isinstance(window_size, int):
+        raise ValueError('Window size must be an integer.')
+    
+    for i in data:
+        if not isinstance(i, (int, float)):
+            raise ValueError('Data list must contain only numbers.')
+
+    # Check window size
+    if window_size > len(data):
+        raise ValueError('Window size must be less than or equal to the length of the data.')
+
+    # Apply the filter
+    filtered_data = []
+    for i in range(window_size-1, len(data)):
+        window = data[i-window_size+1:i+1]  # Define the window
+        filtered_data.append(sum(window) / window_size)  # Append the average of the window
+
+    return filtered_data
