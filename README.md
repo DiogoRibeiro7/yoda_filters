@@ -1,5 +1,6 @@
 # yoda_filters
-# Signal Processing Filters
+
+![](create_me_a_baby.png)
 
 This documentation provides an overview and usage examples for various signal processing filters implemented in Python.
 
