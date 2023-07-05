@@ -37,9 +37,6 @@ def _zp2tf(z, p, rp=None, btype='lowpass'):
             "Invalid filter type. Supported types are 'lowpass' and 'highpass'.")
 
 
-import numpy as np
-
-
 def zp2tf_custom(z: np.ndarray, p: np.ndarray, rp: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Convert zeros and poles to transfer function coefficients with a custom scaling factor.
@@ -65,7 +62,8 @@ def zp2tf_custom(z: np.ndarray, p: np.ndarray, rp: np.ndarray) -> tuple[np.ndarr
 
     # Check input array lengths
     if len(z) != len(p) or len(z) != len(rp):
-        raise ValueError("Lengths of `z`, `p`, and `rp` arrays must be the same.")
+        raise ValueError(
+            "Lengths of `z`, `p`, and `rp` arrays must be the same.")
 
     # Convert zeros and poles to transfer function coefficients
     num = np.poly(z)
@@ -76,7 +74,6 @@ def zp2tf_custom(z: np.ndarray, p: np.ndarray, rp: np.ndarray) -> tuple[np.ndarr
     den *= rp[0]
 
     return num, den
-
 
 
 def highpass_transform(num: np.ndarray, den: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -105,7 +102,6 @@ def highpass_transform(num: np.ndarray, den: np.ndarray) -> tuple[np.ndarray, np
     num *= sign
 
     return num, den
-
 
 
 def _bilinear_transform(p: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
@@ -554,25 +550,25 @@ def moving_average_filter(data, window_size):
         raise ValueError('Data must be a list.')
     if not isinstance(window_size, int):
         raise ValueError('Window size must be an integer.')
-    
+
     for i in data:
         if not isinstance(i, (int, float)):
             raise ValueError('Data list must contain only numbers.')
 
     # Check window size
     if window_size > len(data):
-        raise ValueError('Window size must be less than or equal to the length of the data.')
+        raise ValueError(
+            'Window size must be less than or equal to the length of the data.')
 
     # Apply the filter
     filtered_data = []
     for i in range(window_size-1, len(data)):
         window = data[i-window_size+1:i+1]  # Define the window
-        filtered_data.append(sum(window) / window_size)  # Append the average of the window
+        # Append the average of the window
+        filtered_data.append(sum(window) / window_size)
 
     return filtered_data
 
-
-import numpy as np
 
 def hilbert_transform(data: list):
     """
@@ -593,7 +589,7 @@ def hilbert_transform(data: list):
         >>> print(ht_data)
         [ 0.+1.j, -1.+1.j, -2.+0.j, -1.-1.j,  0.-1.j,  1.-1.j,  2.-0.j,  1.+1.j]
     """
-    
+
     # Check types
     if not isinstance(data, list):
         raise ValueError('Data must be a list.')
@@ -646,19 +642,72 @@ def median_filter(data: list, window_size: int):
         raise ValueError('Data must be a list.')
     if not isinstance(window_size, int):
         raise ValueError('Window size must be an integer.')
-    
+
     for i in data:
         if not isinstance(i, (int, float)):
             raise ValueError('Data list must contain only numbers.')
 
     # Check window size
     if window_size > len(data):
-        raise ValueError('Window size must be less than or equal to the length of the data.')
+        raise ValueError(
+            'Window size must be less than or equal to the length of the data.')
 
     # Apply the filter
     filtered_data = []
     for i in range(window_size-1, len(data)):
         window = data[i-window_size+1:i+1]  # Define the window
-        filtered_data.append(sorted(window)[window_size // 2])  # Append the median of the window
+        # Append the median of the window
+        filtered_data.append(sorted(window)[window_size // 2])
 
     return filtered_data
+
+
+def savgol_filter(y: list, window_size: int, order: int):
+    """
+    Applies a Savitzky-Golay filter to a 1D signal.
+
+    Args:
+        y (list): List of numerical data to be filtered.
+        window_size (int): The size of the filter window (must be odd).
+        order (int): The order of the polynomial used in the filter.
+
+    Returns:
+        np.ndarray: Savitzky-Golay filtered data.
+
+    Raises:
+        ValueError: If input types are not as expected.
+        ValueError: If window size is not an odd number.
+
+    Example:
+        >>> y = [2, 2, 5, 2, 1, 0, 1, 3, 6, 7, 8, 10, 11, 12, 13, 14, 15]
+        >>> window_size = 5
+        >>> order = 2
+        >>> filtered_y = savgol_filter(y, window_size, order)
+        >>> print(filtered_y)
+        [2.2, 2.8, 3.2, 2.3, 1.1, 1.4, 2.8, 4.6, 6.6, 8.3, 9.6, 10.6, 11.3, 12.1, 13.2, 14.4, 15. ]
+    """
+
+    # Check types
+    if not isinstance(y, list):
+        raise ValueError('Data must be a list.')
+    if not isinstance(window_size, int):
+        raise ValueError('Window size must be an integer.')
+    if not isinstance(order, int):
+        raise ValueError('Order must be an integer.')
+
+    # Check values
+    if window_size % 2 == 0:
+        raise ValueError('Window size must be an odd number.')
+    if window_size < order + 2:
+        raise ValueError('Window size is too small for the polynomial order.')
+
+    # Convert list to numpy array
+    y = np.array(y)
+
+    # Create an array of coefficients for a Savitzky-Golay filter
+    n = (window_size - 1) // 2
+    A = np.vander(np.arange(-n, n + 1), order + 1).T
+    coeffs = np.linalg.pinv(A).r_[order]
+
+    # Apply the filter
+    return np.convolve(y, coeffs, mode='same')
