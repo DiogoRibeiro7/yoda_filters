@@ -711,3 +711,42 @@ def savgol_filter(y: list, window_size: int, order: int):
 
     # Apply the filter
     return np.convolve(y, coeffs, mode='same')
+
+
+import numpy as np
+
+def matched_filter(signal, template):
+    """
+    Applies a matched filter to a 1D signal.
+
+    Args:
+        signal (list): List of numerical data to be filtered.
+        template (list): List of numerical data as a template.
+
+    Returns:
+        np.ndarray: Output of the matched filter.
+
+    Raises:
+        ValueError: If input types are not as expected.
+
+    Example:
+        >>> signal = [0, 0, 0, 1, 1, 1, 0, 0, 0]
+        >>> template = [1, 1, 1]
+        >>> output = matched_filter(signal, template)
+        >>> print(output)
+        [0., 0., 1., 2., 3., 2., 1., 0., 0.]
+    """
+
+    # Check types
+    if not isinstance(signal, list):
+        raise ValueError('Signal must be a list.')
+    if not isinstance(template, list):
+        raise ValueError('Template must be a list.')
+
+    # Convert list to numpy array
+    signal = np.array(signal)
+    template = np.array(template)
+
+    # Apply the filter
+    return np.correlate(signal, template, mode='same')
+
