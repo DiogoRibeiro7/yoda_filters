@@ -570,3 +570,95 @@ def moving_average_filter(data, window_size):
         filtered_data.append(sum(window) / window_size)  # Append the average of the window
 
     return filtered_data
+
+
+import numpy as np
+
+def hilbert_transform(data: list):
+    """
+    Computes an approximation of the Hilbert Transform of a 1D signal.
+
+    Args:
+        data (list): List of numerical data to be transformed.
+
+    Returns:
+        np.ndarray: Hilbert-transformed data.
+
+    Raises:
+        ValueError: If input types are not as expected.
+
+    Example:
+        >>> data = [1, 2, 1, 0, -1, -2, -1, 0]
+        >>> ht_data = hilbert_transform(data)
+        >>> print(ht_data)
+        [ 0.+1.j, -1.+1.j, -2.+0.j, -1.-1.j,  0.-1.j,  1.-1.j,  2.-0.j,  1.+1.j]
+    """
+    
+    # Check types
+    if not isinstance(data, list):
+        raise ValueError('Data must be a list.')
+
+    for i in data:
+        if not isinstance(i, (int, float)):
+            raise ValueError('Data list must contain only numbers.')
+
+    # Convert data to numpy array
+    data = np.array(data)
+
+    # Perform FFT
+    fft_data = np.fft.fft(data)
+
+    # Create an array for the multiplier (two in the positive frequency region, zero in the negative)
+    multiplier = np.zeros_like(data)
+    multiplier[:len(data) // 2] = 2
+
+    # Perform inverse FFT, multiplying by the multiplier
+    hilbert = np.fft.ifft(fft_data * multiplier)
+
+    return hilbert
+
+
+def median_filter(data: list, window_size: int):
+    """
+    Applies a median filter to a list of data.
+
+    Args:
+        data (list): List of numerical data to be filtered.
+        window_size (int): The size of the median filter window.
+
+    Returns:
+        list: List of filtered data.
+
+    Raises:
+        ValueError: If input types are not as expected.
+        ValueError: If window size is greater than the length of the data.
+
+    Example:
+        >>> data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        >>> window_size = 3
+        >>> filtered_data = median_filter(data, window_size)
+        >>> print(filtered_data)
+        [2, 3, 4, 5, 6, 7, 8, 9]
+    """
+
+    # Check types
+    if not isinstance(data, list):
+        raise ValueError('Data must be a list.')
+    if not isinstance(window_size, int):
+        raise ValueError('Window size must be an integer.')
+    
+    for i in data:
+        if not isinstance(i, (int, float)):
+            raise ValueError('Data list must contain only numbers.')
+
+    # Check window size
+    if window_size > len(data):
+        raise ValueError('Window size must be less than or equal to the length of the data.')
+
+    # Apply the filter
+    filtered_data = []
+    for i in range(window_size-1, len(data)):
+        window = data[i-window_size+1:i+1]  # Define the window
+        filtered_data.append(sorted(window)[window_size // 2])  # Append the median of the window
+
+    return filtered_data
