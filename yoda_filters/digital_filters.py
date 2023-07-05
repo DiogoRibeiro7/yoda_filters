@@ -713,8 +713,6 @@ def savgol_filter(y: list, window_size: int, order: int):
     return np.convolve(y, coeffs, mode='same')
 
 
-import numpy as np
-
 def matched_filter(signal, template):
     """
     Applies a matched filter to a 1D signal.
@@ -749,4 +747,5 @@ def matched_filter(signal, template):
 
     # Apply the filter
     return np.correlate(signal, template, mode='same')
+
 
